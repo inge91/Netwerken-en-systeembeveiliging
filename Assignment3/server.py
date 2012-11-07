@@ -1,12 +1,22 @@
+#################################################
+# Assignment 3: Server in python                #
+# By: Inge Becht, 6093906                       #                         
+#                                               #    
+# Run program by: python server.py              #            
+#                                               #
+#################################################
+
+
 import socket
 import os
 HOST = 'localhost'
 PORT = 8888
 
-# Handles the request of the client
+# Handles the request of the client by returning an approptriate
+# reply (404, 501 or 200)
 def handle_request(connection):
 
-    # Receive data, 1024 bytes from the buffer.
+    # Receive data from buffer
     data = connection.recv(1024)
 
     # Split the request on whitespace 
@@ -16,9 +26,8 @@ def handle_request(connection):
     # Check if first element is GET
     # If not, send HTTP BAD GATEWAY reply
     if(not request[0] == "GET"):
-        header = """ HTTP/1.1 501 Not Implemented
-
-This server can only handle GET requests"""
+        header = ("""HTTP/1.1 501 Not Implemented\n\n This server can only"""+
+        " handle GET requests""")
         connection.send(header)
     else:
         
@@ -31,19 +40,15 @@ This server can only handle GET requests"""
             
         # If requested file not exists send 404
         if(not os.path.exists(requested_file)):
-            print "Requested file does not exist"
-            header ="""HTTP/1.1 404 Not Found
-                       
 
-404 Error: This page can not be found!"""
+            header = ("""HTTP/1.1 404 Not Found\n\n 404 Error: """+
+            """This page cannot be found!""")
             connection.send(header)
-        else:
+
+        else:   
             
-            # Construct OK header
-            header ="""HTTP/1.1 200 OK
-
-
-                    """
+            # Construct reply header
+            header = """HTTP/1.1 200 OK\n\n"""
 
             # Put requested file in variable
             f = open(requested_file, 'r')
