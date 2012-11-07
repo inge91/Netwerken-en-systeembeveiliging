@@ -1,0 +1,40 @@
+
+Task 1
+1.
+    IP Address of ss64.com : 216.92.29.160
+2.
+    IP Address of sending computer : 145.18.214.201
+3.
+    Protocols used:
+    Internet Protocol
+    Transmission Control Protocol
+    Hypertext Transfer Protocol
+4. 8 HTTP ok messages from ip 216.92.29.160
+
+Task 2: Find delay and sent files
+5. First Get request at: 6.195787
+   First OK at: 6.63023200
+   Substracting these two values approximately: 0.4345
+6. Yes, multiple images:
+    - ss64.gif
+    - bash-l.gif
+    - syntax-r.gif
+    - top-4.gif
+    - roll-left.png
+    - roll-right.png
+
+7.
+    Right click-> Print... With this you can copy all the information to file.
+
+8. Computer send 38 packages(total of 5650 bytes) to the server and ss64.com send
+39 packages(total of 32908 bytes) to 
+ There is a lot more send than received, this because all the images needed to
+be send to the computer and the computer only asked for permission.
+
+9. See pretty image!
+
+
+10. 
+    username = wireshark-students
+    password: network
+    
