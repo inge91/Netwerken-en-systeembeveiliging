@@ -2,8 +2,8 @@
 # Assignment 3: Server in python                #
 # By: Inge Becht, 6093906                       #                         
 #                                               #    
-# Run program by: python lab3.py                #            
-#                                               #
+# Run server by: python lab3.py                 #            
+# Uses port 8888                                #
 #################################################
 
 import socket

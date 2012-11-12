@@ -6,12 +6,12 @@
 #                                               #
 #################################################
 ## Answer for the question:
-## To send mail with authentication, one could use SMTP AUTHENTICATION instead
+## To send mail with authentication, one could for example use SMTP AUTH or POP3 instead
 ## of simply SMTP. In case of this SMTP AUTH the user has to verify its identity
-## at every request by giving username and password.
-there needs to be a way to verify the identity of the
-## user. This can be done using a username password system as is usually the
-## case.
+## by providing a username and password connected to the server when sending the
+## email. The server is able to check if these credentials are then legit and
+## the email will be sent. POP 3 works the same way with asking for credentials
+## after establishing a conversation.
 import socket
 import sys
 
@@ -109,7 +109,16 @@ def establish_data(client_socket):
     server_response = client_socket.recv(1024)
 
 	# prompt user for data and send to server
-    data = raw_input("Type in your message body. Press enter when done.\n>")
+    print "Type in your message body. Enter a single \".\" when done.\n>"
+    data = "" 
+    while(True):
+        next_input = raw_input("")
+        if(next_input == "."):
+            break
+        else:
+            data += "\n"
+            data += next_input
+
     client_socket.sendall(data + "\n.\r\n")
     server_response = client_socket.recv(1024)
     code = server_response.split(" ")[0]
@@ -150,16 +159,15 @@ def handle_email(client_socket):
         sys.exit(1)
 
     # Quit the sdtp connection
-    #client_socket.sendall("QUIT\r\n")
-    #server_response = client_socket.recv(1024)
+    client_socket.sendall("QUIT\r\n")
+    server_response = client_socket.recv(1024)
     #print server_response
-    #code = server_response.split(" ")[0]
-    #if(code == "221"):
-    #    pass
-    #else:
-    #    print "Could not QUIT.. Exiting..."
-    #    sys.exit(1)
-	
+    code = server_response.split(" ")[0]
+    if(code == "221"):
+        pass
+    else:
+        print "Could not QUIT.. Exiting..."
+        sys.exit(1)
 
 def main():
     #prompt the user to input
