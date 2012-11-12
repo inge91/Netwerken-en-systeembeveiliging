@@ -2,15 +2,16 @@
 # Assignment 3: Server in python                #
 # By: Inge Becht, 6093906                       #                         
 #                                               #    
-# Run program by: python server.py              #            
+# Run program by: python lab3.py                #            
 #                                               #
 #################################################
-
 
 import socket
 import os
 HOST = 'localhost'
 PORT = 8888
+
+#http://localhost:8888/index.html
 
 # Handles the request of the client by returning an approptriate
 # reply (404, 501 or 200)
@@ -21,12 +22,15 @@ def handle_request(connection):
 
     # Split the request on whitespace 
     request = data.split(" ")
-    print request
+    print "Request for:"
+    print request[0],
+    print " ",
+    print request[1]
 
     # Check if first element is GET
     # If not, send HTTP BAD GATEWAY reply
     if(not request[0] == "GET"):
-        header = ("""HTTP/1.1 501 Not Implemented\n\n This server can only"""+
+        header = ("""HTTP/1.1 501 Not Implemented\r\n\r\n This server can only"""+
         " handle GET requests""")
         connection.send(header)
     else:
@@ -41,14 +45,14 @@ def handle_request(connection):
         # If requested file not exists send 404
         if(not os.path.exists(requested_file)):
 
-            header = ("""HTTP/1.1 404 Not Found\n\n 404 Error: """+
+            header = ("""HTTP/1.1 404 Not Found\r\n\r\n 404 Error: """+
             """This page cannot be found!""")
             connection.send(header)
 
         else:   
             
             # Construct reply header
-            header = """HTTP/1.1 200 OK\n\n"""
+            header = """HTTP/1.1 200 OK\r\n\r\n"""
 
             # Put requested file in variable
             f = open(requested_file, 'r')
@@ -61,7 +65,7 @@ def create_server_socket():
     # Create a socket 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Make address resuable after killing 
+    # Make port resuable after killing 
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Bind the socket to a port and host
@@ -83,7 +87,7 @@ def create_server_socket():
         # Handle the client request 
         handle_request(connection)
 
-        print "Request handled. Closing connection"
+        print "Request handled. Closing connection\n"
 
         # Close the connection
         connection.close()
@@ -94,7 +98,6 @@ def create_server_socket():
 def main():
     create_server_socket()
 
-#http://localhost:8888/index.html
 
 
 if __name__ == "__main__":
