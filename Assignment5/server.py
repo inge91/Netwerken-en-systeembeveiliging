@@ -1,3 +1,8 @@
+#################################################
+# Assignment 5a: chat server                    #
+# By: Inge Becht, 6093906                       #                         
+#                                               #    
+#################################################
 import socket
 import select
 import sys
@@ -21,10 +26,10 @@ def say_data(data):
 def send_server_message(data):
     all_members =  member_list.keys()
     for member in all_members:
-        member.sendall(data) 
+        member.sendall("<" + data + ">") 
     
 # send data, buy only to receiver and sender
-def whisper_data(data, sender, receiver):
+def send_whisper(data, sender, receiver):
     inf = "[" + member_list[sender] + " to " + receiver + "]: "
     data = inf + data
     sender.sendall(data)
@@ -39,6 +44,42 @@ def in_use(name):
     if name in member_list.values():
         return True
     return False
+
+# Handles a nickname request from sender
+def handle_nick(text, sender):
+    if len(text) > 2 or len(text) < 2: 
+        sender.sendall("""<Usage of /nick: /nick <enter_name>>""")
+
+    elif(in_use(text[1])) :
+        sender.sendall("""<This nickname is already in use>""")
+
+    else:
+        temp = member_list[sender]
+        member_list[sender] = text[1]
+        send_server_message(temp + " changed his name to " + member_list[sender])
+
+# Handle a whisper request from sender
+def handle_whisper(text, sender):
+    if len(text) < 3:
+        sender.sendall("""<Usage of /whisper: /whisper <user> <text>>""")
+    elif(not in_use(text[1])):
+        sender.sendall("""<This user does not exist>""")
+    elif(member_list[sender] == text[1]):
+        sender.sendall("""<You can not whisper to yourself>""")
+    else:
+        send_whisper(" ".join(text[2:]), sender, text[1])
+
+def handle_list(text, sender):
+    if len(text) > 1:
+        sender.sendall("""<Usage of /list: /list>""")
+    else:
+        data = "Online visitors:\n"
+        all_members = member_list.keys()
+        for member in all_members:
+            data += member_list[member] + "\n" 
+        sender.sendall(data)
+
+        
 
 
     
@@ -67,61 +108,41 @@ def main():
                 global member_list
                 global COUNT
                 member_list[client] = "Guest" + str(COUNT)
-                print member_list
                 COUNT += 1
                 send_server_message(member_list[client] + " entered chat")
 
+            # Else handle incoming text of descriptor
             else:
                 talk = descriptor.recv(1024)
                 
                 #TODO: Make sure not too many characters!
                 if talk:
-                    commands = talk .split(" ")
+                    commands = talk.split(" ")
                     if commands[0] == "/nick":
-                        if len(commands) > 2 or len(commands) < 2: 
-                            descriptor.sendall("""Usage of /nick: /nick """
-                                   + """<enter_name>""")
-                        elif(in_use(commands[1])) :
-                            descriptor.sendall(""" This nickname is already"""
-                                    + """ in use.""")
-                        else:
-                            temp = member_list[descriptor]
-                            member_list[descriptor] = commands[1]
-                            send_server_message(temp + " changed his name to " + member_list[client])
-                            
+                        handle_nick(commands, descriptor)
 
                     elif commands[0] == "/say":
-                      say_data( member_list[descriptor] + ": " + " ".join(commands[1:]))
+                        say_data( member_list[descriptor] + ": " + 
+                                " ".join(commands[1:]))
+
                     elif commands[0] == "/whisper":
-                        if len(commands) < 3:
-                            descriptor.sendall("""Usage of /whisper: /whisper """
-                                    + """<user> <text>""")
-                        elif(not in_use(commands[1])):
-                            descriptor.sendall("""This user does not exist""")
-                        elif(member_list[descriptor] == commands[1]):
-                            descriptor.sendall("""You can not whisper to yourself""")
-                        else:
-                            whisper_data(" ".join(commands[2:]), descriptor, commands[1])
+                        handle_whisper(commands, descriptor)
+                    
+                    elif commands[0] == "/list":
+                        handle_list(commands, descriptor)
 
-
+                    # If none of these commands are used interpret it as a /say
                     else:
-                        descriptor.sendall("""Unknown command""")
-                        
+                        say_data( member_list[descriptor] + ": " + 
+                                " ".join(commands[1:]))
+
                 # In case nothing received we remove 
                 # descriptor from input and close the connection
                 else:
-                    print "Client disconnected"
+                    send_server_message(member_list[descriptor] +" logged off")
                     input.remove(descriptor)
                     del member_list[descriptor]
                     descriptor.close()
-
-
-                
-                
-
-
-    
-
 
 
 if __name__ == "__main__":
