@@ -16,13 +16,17 @@ import time
 
 def send_ping(socket):
     # Encrypt message, then send it 
+    print "send_ping"
     encripted_message = message_encode(MSG_PING,0, (x,y), (-1,-1))
     socket.sendto(encripted_message, (MCAST_GRP, MCAST_PORT))
 
 # Pong message send via unicast
 def send_pong(socket, initiator, address):
+    print "Send_pong"
     # Encrypt message, then send it back to initiator
     encripted_message = message_encode(MSG_PING,0, initiator, (x,y))
+    print "address"
+    print address
     #send unicast
     socket.sendto(encripted_message, address)
     
@@ -30,20 +34,24 @@ def send_pong(socket, initiator, address):
 def handle_message(peer, message, address):
     #First decript the message
     decripted_message = message_decode(message)
-    print decripted_message
     
     # When receiving message, send pong message in case
     # of being close enough
     if decripted_message[0] == MSG_PING:
-        if((x,y) == decripted_message[2]):
-            print "These are on the same position!"
-            pass
-        elif(True):
-            print "Received ping message"
+        print "Received ping message"
+        init_x, init_y = decripted_message[2]
+        if((x,y) == (init_x, init_y)):
+            print "Both are the same"
+        # FIXME Is this the right way to find the range in a circle
+        elif(abs(x - init_x) + abs(y - init_y) < 50):
+            print "In the right range"
             send_pong(peer, decripted_message[2], address)
+    # In case of pong message add non_initiator to neighbor list
     if decripted_message[0] == MSG_PONG:
+        (non_initiator, address) = descripted_message[3]
         print "Received a pong message"
-        
+        global neighbors
+        neighbors += non_initiator
  
 def socket_subscribe_mcast(sock, ip):
     """
@@ -57,16 +65,14 @@ def main(argv):
     """
     Program entry point.
     """
-
     # Set some of the global variables
     global neighbors
     neighbors = []
-
     # TODO: Make global and no duplicate values between nodes
     global x 
-    x = random.randint(0, 99)    
+    x = random.randint(0, 4)    
     global y
-    y = random.randint(0, 99)
+    y = random.randint(0, 4)
 
     global value
     value = random.randint(0, 259898)
@@ -89,12 +95,16 @@ def main(argv):
     peer = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     # Set the socket multicast TTL so it can send multicast messages.
     peer.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, 2)
+
+
     # Bind the socket to a random port.
     peer.bind(('', INADDR_ANY))
 
-
     ## This is the event loop.
     window = MainWindow()
+
+
+    print (x,y)
 
     # Show information of newly connected node
     ip_port = "IP:Port = " + str(MCAST_GRP) + ":" + str(INADDR_ANY)
@@ -104,7 +114,6 @@ def main(argv):
     window.writeln("sensor value = " + str(value))
 
     # Send ping to all other users and start clock
-    print "Here2"
     send_ping(peer)
 
     start = time.time()
@@ -118,10 +127,10 @@ def main(argv):
     while window.update():
         # In case 5 seconds have passed resend ping message
         if (time.time() - start > PING_PERIOD):
-            print "Here"
-            send_ping(peer)
-            start = time.time()
-        
+           #kj neighbors = []
+           # send_ping(peer)
+           # start = time.time()
+           pass
         
         # TODO make select nonblocking
         # Read all incoming messages
@@ -131,13 +140,15 @@ def main(argv):
             # Receive the message from every descriptor
         try: 
             message, address = mcast.recvfrom(1024)
+            print "received_message"
+            handle_message(mcast, message, address)
         except error:
             pass
         try: 
-            message = peer.recv(1024)
+            message, address  = peer.recvfrom(1024)
+            handle_message(mcast, message, address)
         except error:
             pass
-
         # TODO making gui display list of members and such
             
             
