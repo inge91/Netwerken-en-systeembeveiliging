@@ -19,13 +19,32 @@ def send_ping(socket):
     encripted_message = message_encode(MSG_PING,0, (x,y), (-1,-1))
     socket.sendto(encripted_message, (MCAST_GRP, MCAST_PORT))
 
-# Pong message send by unicast
+# Pong message send via unicast
 def send_pong(socket, initiator, address):
     # Encrypt message, then send it back to initiator
     encripted_message = message_encode(MSG_PING,0, initiator, (x,y))
     #send unicast
-    socket.sendto(encripted_message, (address, INADDR_ANY))
+    socket.sendto(encripted_message, address)
     
+# Handles depending on the type of message received
+def handle_message(peer, message, address):
+    #First decript the message
+    decripted_message = message_decode(message)
+    print decripted_message
+    
+    # When receiving message, send pong message in case
+    # of being close enough
+    if decripted_message[0] == MSG_PING:
+        if((x,y) == decripted_message[2]):
+            print "These are on the same position!"
+            pass
+        elif(True):
+            print "Received ping message"
+            send_pong(peer, decripted_message[2], address)
+    if decripted_message[0] == MSG_PONG:
+        print "Received a pong message"
+        
+ 
 def socket_subscribe_mcast(sock, ip):
     """
     Subscribes a socket to multicast.
@@ -33,24 +52,25 @@ def socket_subscribe_mcast(sock, ip):
     mreq = struct.pack("4sl", inet_aton(ip), INADDR_ANY)
     sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq)
 
-# Handles depending on the type of message received
-def handle_message(message, address):
-    #First decript the message
-    decripted_message = message_decode(message)
-    
-    # When receiving message, send pong message in case
-    # of being close enough
-    if decripted_message[0] == MSG_PING:
-        if(True):
-            # extract initiator position
-            send_pong()
-        
- 
 
 def main(argv):
     """
     Program entry point.
     """
+
+    # Set some of the global variables
+    global neighbors
+    neighbors = []
+
+    # TODO: Make global and no duplicate values between nodes
+    global x 
+    x = random.randint(0, 99)    
+    global y
+    y = random.randint(0, 99)
+
+    global value
+    value = random.randint(0, 259898)
+
     ## Create the multicast listener socket and suscribe to multicast.
     mcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     socket_subscribe_mcast(mcast, MCAST_GRP)
@@ -61,12 +81,9 @@ def main(argv):
     # so that messages rom different groups do not interfere.
     # When you hand in your code in it must listen on (MCAST_GRP, MCAST_PORT).
 
-
     # Make resuable
     mcast.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-
     mcast.bind((MCAST_GRP, MCAST_PORT))
-
 
     ## Create the peer-to-peer socket.
     peer = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
@@ -75,13 +92,6 @@ def main(argv):
     # Bind the socket to a random port.
     peer.bind(('', INADDR_ANY))
 
-    # TODO: Make global and no duplicate values between nodes
-    global x 
-    x = random.randint(0, 99)    
-    global y
-    y = random.randint(0, 99)
-
-    value = random.randint(0, 259898)
 
     ## This is the event loop.
     window = MainWindow()
@@ -94,39 +104,39 @@ def main(argv):
     window.writeln("sensor value = " + str(value))
 
     # Send ping to all other users and start clock
+    print "Here2"
     send_ping(peer)
 
     start = time.time()
     
-    # Input from select
+    # Input for select
     input = [mcast, peer]
 
     peer.setblocking(0)
-    
-    i = 0
+    mcast.setblocking(0)
 
     while window.update():
-        print i
-        i+=1
-
         # In case 5 seconds have passed resend ping message
         if (time.time() - start > PING_PERIOD):
+            print "Here"
             send_ping(peer)
             start = time.time()
-        pass
-
-
-        # Read all incoming messages
-        descriptors, _, _ = select.select(input, [], [])
         
-        for descriptor in descriptors:
-            print 'a'
+        
+        # TODO make select nonblocking
+        # Read all incoming messages
+        #descriptors, _, _ = select.select(input, [], [])
+
+        #for descriptor in descriptors:
             # Receive the message from every descriptor
-            message, address = descriptor.recvfrom(1024)
-            print message
-            print "address"
-            print address
-            handle_message(message, address)
+        try: 
+            message, address = mcast.recvfrom(1024)
+        except error:
+            pass
+        try: 
+            message = peer.recv(1024)
+        except error:
+            pass
 
         # TODO making gui display list of members and such
             
