@@ -115,7 +115,6 @@ def main():
             else:
                 talk = descriptor.recv(1024)
                 
-                #TODO: Make sure not too many characters!
                 if talk:
                     commands = talk.split(" ")
                     if commands[0] == "/nick":
@@ -133,8 +132,7 @@ def main():
 
                     # If none of these commands are used interpret it as a /say
                     else:
-                        say_data( member_list[descriptor] + ": " + 
-                                " ".join(commands[1:]))
+                        descriptor.sendall("<Unknown Command>")
 
                 # In case nothing received we remove 
                 # descriptor from input and close the connection
