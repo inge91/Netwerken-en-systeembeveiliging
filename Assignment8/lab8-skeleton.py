@@ -15,10 +15,17 @@ import time
 # Sends a ping message to MCAST_GRP
 
 def send_ping(socket):
-    encripted_message = message_encode(MSG_PING )
+    # Encrypt message, then send it 
+    encripted_message = message_encode(MSG_PING,0, (x,y), (-1,-1))
     socket.sendto(encripted_message, (MCAST_GRP, MCAST_PORT))
-    
 
+# Pong message send by unicast
+def send_pong(socket, initiator, address):
+    # Encrypt message, then send it back to initiator
+    encripted_message = message_encode(MSG_PING,0, initiator, (x,y))
+    #send unicast
+    socket.sendto(encripted_message, (address, INADDR_ANY))
+    
 def socket_subscribe_mcast(sock, ip):
     """
     Subscribes a socket to multicast.
@@ -30,8 +37,14 @@ def socket_subscribe_mcast(sock, ip):
 def handle_message(message, address):
     #First decript the message
     decripted_message = message_decode(message)
+    
+    # When receiving message, send pong message in case
+    # of being close enough
     if decripted_message[0] == MSG_PING:
-        print "Receiev a ping message"
+        if(True):
+            # extract initiator position
+            send_pong()
+        
  
 
 def main(argv):
@@ -63,7 +76,9 @@ def main(argv):
     peer.bind(('', INADDR_ANY))
 
     # TODO: Make global and no duplicate values between nodes
+    global x 
     x = random.randint(0, 99)    
+    global y
     y = random.randint(0, 99)
 
     value = random.randint(0, 259898)
@@ -74,6 +89,7 @@ def main(argv):
     # Show information of newly connected node
     ip_port = "IP:Port = " + str(MCAST_GRP) + ":" + str(INADDR_ANY)
     window.writeln(ip_port)
+
     window.writeln("position = (" + str(x) + ", " + str(y) + ")")
     window.writeln("sensor value = " + str(value))
 
@@ -85,7 +101,13 @@ def main(argv):
     # Input from select
     input = [mcast, peer]
 
+    peer.setblocking(0)
+    
+    i = 0
+
     while window.update():
+        print i
+        i+=1
 
         # In case 5 seconds have passed resend ping message
         if (time.time() - start > PING_PERIOD):
@@ -93,15 +115,20 @@ def main(argv):
             start = time.time()
         pass
 
+
+        # Read all incoming messages
         descriptors, _, _ = select.select(input, [], [])
         
         for descriptor in descriptors:
+            print 'a'
             # Receive the message from every descriptor
             message, address = descriptor.recvfrom(1024)
             print message
             print "address"
             print address
             handle_message(message, address)
+
+        # TODO making gui display list of members and such
             
             
 
