@@ -24,16 +24,18 @@ def send_ping(socket):
 def send_pong(socket, initiator, address):
     print "Send_pong"
     # Encrypt message, then send it back to initiator
-    encripted_message = message_encode(MSG_PING,0, initiator, (x,y))
+    encripted_message = message_encode(MSG_PONG,0, initiator, (x,y))
     print "address"
     print address
     #send unicast
+    print address
     socket.sendto(encripted_message, address)
     
 # Handles depending on the type of message received
-def handle_message(peer, message, address):
+def handle_message(peer, mcast, message, address):
     #First decript the message
     decripted_message = message_decode(message)
+    print decripted_message
     
     # When receiving message, send pong message in case
     # of being close enough
@@ -46,12 +48,12 @@ def handle_message(peer, message, address):
         elif(abs(x - init_x) + abs(y - init_y) < 50):
             print "In the right range"
             send_pong(peer, decripted_message[2], address)
-    # In case of pong message add non_initiator to neighbor list
+    # In case of pong message add non_initiator to the neighbor list
     if decripted_message[0] == MSG_PONG:
-        (non_initiator, address) = descripted_message[3]
+        (non_initiator, address) = (decripted_message[3], address)
         print "Received a pong message"
         global neighbors
-        neighbors += non_initiator
+        neighbors.append((non_initiator, address))
  
 def socket_subscribe_mcast(sock, ip):
     """
@@ -126,11 +128,10 @@ def main(argv):
 
     while window.update():
         # In case 5 seconds have passed resend ping message
-        if (time.time() - start > PING_PERIOD):
-           #kj neighbors = []
-           # send_ping(peer)
-           # start = time.time()
-           pass
+        if ((time.time() - start) > PING_PERIOD):
+            neighbors = []
+            send_ping(peer)
+            start = time.time()
         
         # TODO make select nonblocking
         # Read all incoming messages
@@ -141,16 +142,16 @@ def main(argv):
         try: 
             message, address = mcast.recvfrom(1024)
             print "received_message"
-            handle_message(mcast, message, address)
+            handle_message(peer, mcast, message, address)
         except error:
             pass
         try: 
             message, address  = peer.recvfrom(1024)
-            print "received peer message"
-            handle_message(peer, message, address)
+            print "received on peer"
+            handle_message(peer, mcast, message, address)
+            print neighbors
         except error:
             pass
-
         print neighbors
         # TODO making gui display list of members and such
             
