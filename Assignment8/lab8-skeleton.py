@@ -146,9 +146,12 @@ def main(argv):
             pass
         try: 
             message, address  = peer.recvfrom(1024)
-            handle_message(mcast, message, address)
+            print "received peer message"
+            handle_message(peer, message, address)
         except error:
             pass
+
+        print neighbors
         # TODO making gui display list of members and such
             
             
