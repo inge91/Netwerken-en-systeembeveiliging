@@ -168,6 +168,7 @@ def main(argv):
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
             #Make a move to a new position TODO make smarter
+        # If now input than pass
         elif(command == ""):
             pass
         else:
