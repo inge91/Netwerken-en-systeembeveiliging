@@ -47,7 +47,16 @@ def handle_message(peer, mcast, message, address):
         (non_initiator, address) = (decripted_message[3], address)
         global neighbors
         neighbors.append((non_initiator, address))
- 
+
+wave_seq_nr
+
+# sends message in wave to neighbors except father (got message from)
+def send_echo():
+	global wave_seq_nr
+	wave_seq_nr += 1
+	for addr, pos in neighbors:
+		sensor.encode(2,wave_seq_nr, (x,y), pos)
+
 def socket_subscribe_mcast(sock, ip):
     """
     Subscribes a socket to multicast.
