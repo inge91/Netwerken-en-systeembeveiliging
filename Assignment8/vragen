@@ -1,7 +1,7 @@
-Hoe moeten de random posities assigned worden? a la HDCP of lijstje bijhouden en
-dan random gebruiken.
+Het ip dat in de chatbox geprint staat moet dat de poort waar de peer socket
+op runt zijn?
 
-Hoe zend je een multicast bericht? Moet je het idee van multicast zelf
-afhandelen of wordt dat al gedaan binnen het type?
+Moet je de nodes in een rondje zoeken of een vierkant?
+
 
 

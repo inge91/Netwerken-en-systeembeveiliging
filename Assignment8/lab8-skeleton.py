@@ -16,17 +16,13 @@ import time
 
 def send_ping(socket):
     # Encrypt message, then send it 
-    print "send_ping"
     encripted_message = message_encode(MSG_PING,0, (x,y), (-1,-1))
     socket.sendto(encripted_message, (MCAST_GRP, MCAST_PORT))
 
 # Pong message send via unicast
 def send_pong(socket, initiator, address):
-    print "Send_pong"
     # Encrypt message, then send it back to initiator
     encripted_message = message_encode(MSG_PONG,0, initiator, (x,y))
-    print "address"
-    print address
     #send unicast
     print address
     socket.sendto(encripted_message, address)
@@ -40,18 +36,15 @@ def handle_message(peer, mcast, message, address):
     # When receiving message, send pong message in case
     # of being close enough
     if decripted_message[0] == MSG_PING:
-        print "Received ping message"
         init_x, init_y = decripted_message[2]
         if((x,y) == (init_x, init_y)):
-            print "Both are the same"
+            pass
         # FIXME Is this the right way to find the range in a circle
         elif(abs(x - init_x) + abs(y - init_y) < 50):
-            print "In the right range"
             send_pong(peer, decripted_message[2], address)
     # In case of pong message add non_initiator to the neighbor list
     if decripted_message[0] == MSG_PONG:
         (non_initiator, address) = (decripted_message[3], address)
-        print "Received a pong message"
         global neighbors
         neighbors.append((non_initiator, address))
  
@@ -152,10 +145,33 @@ def main(argv):
             print neighbors
         except error:
             pass
-        print neighbors
+        
         # TODO making gui display list of members and such
-            
-            
+        command = window.getline()
+        # Send a ping to the rest
+        if(command == "ping"):
+            neighbors = []
+            window.writeln("Sending ping over multicast...")
+            send_ping(peer)
+        # Show the list of neighbors
+        elif(command == "list"):
+            window.writeln("List of neighbors <(x,y), ip:port>:")
+            if neighbors == []:
+                window.writeln("No neighbors found")
+            for i in neighbors:
+                window.writeln(str(i[0]) + ", " + str(i[1][0]) + ":" + str(i[1][1]))
+        # Move to a new random position
+        elif(command == "move"):
+            global x 
+            x = random.randint(0, 99)
+            global y
+            y = random.randint(0, 99)
+            window.writeln("New position = " + str((x,y)))
+            #Make a move to a new position TODO make smarter
+        elif(command == ""):
+            pass
+        else:
+            window.writeln("\"" + command + "\" is not a valid command")
 
     
 
