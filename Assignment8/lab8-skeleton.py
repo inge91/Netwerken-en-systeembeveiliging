@@ -24,14 +24,16 @@ def send_pong(socket, initiator, address):
     # Encrypt message, then send it back to initiator
     encripted_message = message_encode(MSG_PONG,0, initiator, (x,y))
     #send unicast
-    print address
     socket.sendto(encripted_message, address)
     
 # Handles depending on the type of message received
 def handle_message(peer, mcast, message, address):
+    global x
+    global y
     #First decript the message
     decripted_message = message_decode(message)
-    print decripted_message
+    print "Message"
+    print decripted_message[0]
     
     # When receiving message, send pong message in case
     # of being close enough
@@ -49,36 +51,66 @@ def handle_message(peer, mcast, message, address):
         neighbors.append((non_initiator, address))
 	# In case of echo message set sender as father and 
 	#		send message to neighbors
-	if decripted_message[0] == MSG_ECHO:
-		recv_echo(decripted_message,address)
-	if decripted_message[0] == MSG_ECHO_REPLY:
-		send_echo_reply()
-
-#wave_seq_nr
+    if decripted_message[0] == MSG_ECHO:
+        print "received echo"
+        recv_echo(peer, decripted_message,address)
+    # add echo reply to all 
+    if decripted_message[0] == MSG_ECHO_REPLY:
+        print "Got echo reply"
+        global neighbor_replies
+        print "address"
+        neighbor_replies.append(address)
+        #FIXME Make check of replies better
+        print neighbor_replies
+        print neighbors
+        if(len(neighbor_replies) == len(neighbors)) :
+            print "SAME SIZE INDEED"
+            # In case you are initiater stop the wave by doing nothing
+            if(x == decripted_message[2][0], y == decripted_message[2][1]):
+                print "wave ended"
+            # Send echo reply to father 5)
+            else:
+                global father
+                send_echo_reply(peer, decripted_message, father)
+        neighbor_replies = []
 
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
-    msg = sensor.encode(MSG_ECHO,msg[1], msg[2], null, NOOP, 0)
-	for (neighbor, address) in neighbors:
-		if address is not father:
-            peer.sendto(msg, address )
+    msg = message_encode(MSG_ECHO,msg[1], msg[2], null, OP_NOOP, 0)
+    for (neighbor, address) in neighbors:
+        if address is not father:
+            peer.sendto(msg, address) 
 
-
+# Handle actions in case of receiving an echo
 def recv_echo(peer, msg, address):
+    global echoMsg
     # when 1 neighbor send echo reply (3
-    if neighbors.length == 1:
-        send_echo_reply(msg,address)
-    # propagate wave when not done already 4)
+    if len(neighbors) == 1:
+        print "case 1"
+        # Father is in this case the sender
+        father = address
+        send_echo_reply(peer, msg, address)
+    # received echo message for the first time 
     elif echoMsg is not (msg[1], msg[2]):
-        global echoMsg
+        print "case 2"
         echoMsg = (msg[1], msg[2])
-        send_echo(msg, address)
-        # do not propagate wave
+        global father 
+        father = address
+        send_echo(peer, msg, address)
+    # Received echo message for the second time (4
+    elif echoMsg == (msg[1], msg[2]):
+        print "case 3"
+        send_echo_reply(peer, msg, address)
     else:
-        send_echo_reply(msg,address)
+        print "case 4"
+        send_echo_reply(peer, msg, address)
 
-def send_echo_reply(msg):
-	sensor.encode(MSG_ECHO_REPLY,msg[1],msg[2],null, NOOP, 0)
+# Sends an echo reply message
+def send_echo_reply(peer, msg, address):
+    print "ADDRESS"
+    print address
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1), OP_NOOP, 0)
+    peer.sendto(encripted_msg, address)
 	
 def socket_subscribe_mcast(sock, ip):
     """
@@ -92,9 +124,18 @@ def main(argv):
     """
     Program entry point.
     """
+
     #last received echo message
     global echoMsg
     echoMsg = (0, 0)
+
+    global neighbor_replies
+    neighbor_replies = []
+
+    #IP and port of father 
+    global father
+    father = (-1, -1)
+
     global waveSeqNr
     waveSeqNr = 0
     # Set some of the global variables
@@ -102,9 +143,9 @@ def main(argv):
     neighbors = []
     # TODO: Make global and no duplicate values between nodes
     global x 
-    x = random.randint(0, 99)    
+    x = random.randint(0, 10)    
     global y
-    y = random.randint(0, 99)
+    y = random.randint(0, 10)
 
     global value
     value = random.randint(0, 259898)
@@ -135,10 +176,9 @@ def main(argv):
     ## This is the event loop.
     window = MainWindow()
 
-
     print (x,y)
 
-    # Show information of newly connected node
+    # Show information of newly connected node TODO: Display Local IP
     ip_port = "IP:Port = " + str(MCAST_GRP) + ":" + str(INADDR_ANY)
     window.writeln(ip_port)
 
@@ -171,6 +211,7 @@ def main(argv):
             pass
         try: 
             message, address  = peer.recvfrom(1024)
+            print message_decode(message)
             handle_message(peer, mcast, message, address)
         except error:
             pass
@@ -194,22 +235,22 @@ def main(argv):
             x = random.randint(0, 99)
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
-            #Make a move to a new position TODO make smarter
 		# Initiate wave
         elif(command == "wave"):
             waveSeqNr += 1
-            encripted_message = encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1), NOOP, 0)
-            # Send wave message to all numbers
+            window.writeln("Starting wave...")
+            encripted_message = message_encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1),
+                    OP_NOOP, 0) 
+            # Send wave message to all numbers 1)
             for i in neighbors:
-                peer.sendto(message, i[1])
+                peer.sendto(encripted_message, i[1])
+                #peer.sendto("ECHO_MSG", i[1])
 		# If now input than pass
         elif(command == ""):
             pass
         else:
             window.writeln("\"" + command + "\" is not a valid command")
-        print neighbors
 
-    
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
