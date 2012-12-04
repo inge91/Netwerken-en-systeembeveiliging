@@ -156,27 +156,19 @@ def main(argv):
             send_ping(peer)
             start = time.time()
         
-        # TODO make select nonblocking
-        # Read all incoming messages
-        #descriptors, _, _ = select.select(input, [], [])
-
-        #for descriptor in descriptors:
-            # Receive the message from every descriptor
+        # Read input from mcast and peer
         try: 
             message, address = mcast.recvfrom(1024)
-            print "received_message"
             handle_message(peer, mcast, message, address)
         except error:
             pass
         try: 
             message, address  = peer.recvfrom(1024)
-            print "received on peer"
             handle_message(peer, mcast, message, address)
-            print neighbors
         except error:
             pass
         
-        # TODO making gui display list of members and such
+        #See if there was GUI input
         command = window.getline()
         # Send a ping to the rest
         if(command == "ping"):
@@ -198,12 +190,13 @@ def main(argv):
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
             #Make a move to a new position TODO make smarter
-        
 		# Initiate wave
 		elif(command == "wave")
 			global waveSeqNr
 			waveSeqNr += 1
-			sensor.encode(MSG_ECHO, waveSeqNr, (x,y), null, NOOP, 0)
+			encripted_message = encode(MSG_ECHO, waveSeqNr, (x,y), null, NOOP, 0)
+            for i in neighbors:
+                peer.sendto(message, i[1])
 		# If now input than pass
         elif(command == ""):
             pass
