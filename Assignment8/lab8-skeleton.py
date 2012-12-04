@@ -54,26 +54,28 @@ def handle_message(peer, mcast, message, address):
 	if decripted_message[0] == MSG_ECHO_REPLY:
 		send_echo_reply()
 
-wave_seq_nr
+#wave_seq_nr
 
 # sends message in wave to neighbors except father (got message from)
-def send_echo(msg,father):
+def send_echo(peer, msg, father):
+    msg = sensor.encode(MSG_ECHO,msg[1], msg[2], null, NOOP, 0)
 	for (neighbor, address) in neighbors:
 		if address is not father:
-			sensor.encode(MSG_ECHO,msg[1], msg[2], null, NOOP, 0)
+            peer.sendto(msg, address )
 
 
-def recv_echo(msg, address):
-	# when 1 neighbor send echo reply
-	if neighbors.length == 1:
-		send_echo_reply(msg,address)
-	# propagate wave when not done already
-	elif(echoMsg is not (msg[1], msg[2])):
-		echoMsg = (seq, initiator):
-		send_echo(address)
-	# donot propagate wave
-	elif:
-		send_echo_reply(msg,address)
+def recv_echo(peer, msg, address):
+    # when 1 neighbor send echo reply (3
+    if neighbors.length == 1:
+        send_echo_reply(msg,address)
+    # propagate wave when not done already 4)
+    elif echoMsg is not (msg[1], msg[2]):
+        global echoMsg
+        echoMsg = (msg[1], msg[2])
+        send_echo(msg, address)
+        # do not propagate wave
+    else:
+        send_echo_reply(msg,address)
 
 def send_echo_reply(msg):
 	sensor.encode(MSG_ECHO_REPLY,msg[1],msg[2],null, NOOP, 0)
@@ -90,14 +92,19 @@ def main(argv):
     """
     Program entry point.
     """
+    #last received echo message
+    global echoMsg
+    echoMsg = (0, 0)
+    global waveSeqNr
+    waveSeqNr = 0
     # Set some of the global variables
     global neighbors
     neighbors = []
     # TODO: Make global and no duplicate values between nodes
     global x 
-    x = random.randint(0, 4)    
+    x = random.randint(0, 99)    
     global y
-    y = random.randint(0, 4)
+    y = random.randint(0, 99)
 
     global value
     value = random.randint(0, 259898)
@@ -184,17 +191,15 @@ def main(argv):
                 window.writeln(str(i[0]) + ", " + str(i[1][0]) + ":" + str(i[1][1]))
         # Move to a new random position
         elif(command == "move"):
-            global x 
             x = random.randint(0, 99)
-            global y
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
             #Make a move to a new position TODO make smarter
 		# Initiate wave
-		elif(command == "wave")
-			global waveSeqNr
-			waveSeqNr += 1
-			encripted_message = encode(MSG_ECHO, waveSeqNr, (x,y), null, NOOP, 0)
+        elif(command == "wave"):
+            waveSeqNr += 1
+            encripted_message = encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1), NOOP, 0)
+            # Send wave message to all numbers
             for i in neighbors:
                 peer.sendto(message, i[1])
 		# If now input than pass
@@ -202,6 +207,7 @@ def main(argv):
             pass
         else:
             window.writeln("\"" + command + "\" is not a valid command")
+        print neighbors
 
     
 
