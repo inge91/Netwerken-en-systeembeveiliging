@@ -47,16 +47,37 @@ def handle_message(peer, mcast, message, address):
         (non_initiator, address) = (decripted_message[3], address)
         global neighbors
         neighbors.append((non_initiator, address))
+	# In case of echo message set sender as father and 
+	#		send message to neighbors
+	if decripted_message[0] == MSG_ECHO:
+		recv_echo(decripted_message,address)
+	if decripted_message[0] == MSG_ECHO_REPLY:
+		send_echo_reply()
 
 wave_seq_nr
 
 # sends message in wave to neighbors except father (got message from)
-def send_echo():
-	global wave_seq_nr
-	wave_seq_nr += 1
-	for addr, pos in neighbors:
-		sensor.encode(2,wave_seq_nr, (x,y), pos)
+def send_echo(msg,father):
+	for (neighbor, address) in neighbors:
+		if address is not father:
+			sensor.encode(MSG_ECHO,msg[1], msg[2], null, NOOP, 0)
 
+
+def recv_echo(msg, address):
+	# when 1 neighbor send echo reply
+	if neighbors.length == 1:
+		send_echo_reply(msg,address)
+	# propagate wave when not done already
+	elif(echoMsg is not (msg[1], msg[2])):
+		echoMsg = (seq, initiator):
+		send_echo(address)
+	# donot propagate wave
+	elif:
+		send_echo_reply(msg,address)
+
+def send_echo_reply(msg):
+	sensor.encode(MSG_ECHO_REPLY,msg[1],msg[2],null, NOOP, 0)
+	
 def socket_subscribe_mcast(sock, ip):
     """
     Subscribes a socket to multicast.
@@ -177,7 +198,13 @@ def main(argv):
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
             #Make a move to a new position TODO make smarter
-        # If now input than pass
+        
+		# Initiate wave
+		elif(command == "wave")
+			global waveSeqNr
+			waveSeqNr += 1
+			sensor.encode(MSG_ECHO, waveSeqNr, (x,y), null, NOOP, 0)
+		# If now input than pass
         elif(command == ""):
             pass
         else:
