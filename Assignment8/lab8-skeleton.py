@@ -32,8 +32,6 @@ def handle_message(peer, mcast, message, address):
     global y
     #First decript the message
     decripted_message = message_decode(message)
-    print "Message"
-    print decripted_message[0]
     
     # When receiving message, send pong message in case
     # of being close enough
@@ -53,62 +51,75 @@ def handle_message(peer, mcast, message, address):
 	#		send message to neighbors
     if decripted_message[0] == MSG_ECHO:
         print "received echo"
+        print decripted_message[2]
         recv_echo(peer, decripted_message,address)
     # add echo reply to all 
     if decripted_message[0] == MSG_ECHO_REPLY:
         print "Got echo reply"
         global neighbor_replies
-        print "address"
         neighbor_replies.append(address)
         #FIXME Make check of replies better
+        print "Neighbor and replies"
         print neighbor_replies
         print neighbors
-        if(len(neighbor_replies) == len(neighbors)) :
-            print "SAME SIZE INDEED"
-            # In case you are initiater stop the wave by doing nothing
-            if(x == decripted_message[2][0], y == decripted_message[2][1]):
+
+        print decripted_message[2]
+        print (x,y)
+        # In case you are initiater stop the wave by doing nothing
+        if(x == decripted_message[2][0] and y == decripted_message[2][1]):
+            print "I am initiator"
+            if(len(neighbor_replies) == len(neighbors)) :
                 print "wave ended"
+                neighbor_replies = []
             # Send echo reply to father 5)
-            else:
+        else:   
+            print "I am not initiator"
+            # Got echo reply from everybody but father
+            if(len(neighbor_replies) == (len(neighbors)-1)):
                 global father
                 send_echo_reply(peer, decripted_message, father)
-        neighbor_replies = []
+                neighbor_replies = []
 
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
-    msg = message_encode(MSG_ECHO,msg[1], msg[2], null, OP_NOOP, 0)
+    print msg[2]
+    print "send echo message to ",
+    msg = message_encode(MSG_ECHO,msg[1], msg[2], (-1, -1), OP_NOOP, 0)
     for (neighbor, address) in neighbors:
-        if address is not father:
+        if address != father:
+            print str(address),
             peer.sendto(msg, address) 
 
 # Handle actions in case of receiving an echo
 def recv_echo(peer, msg, address):
+    print "Received echo from ",
+    print  address 
     global echoMsg
+    global neighbor_replies
+    global father 
     # when 1 neighbor send echo reply (3
     if len(neighbors) == 1:
         print "case 1"
         # Father is in this case the sender
         father = address
-        send_echo_reply(peer, msg, address)
+        print "Received echo message from my only neighbor send him an echo reply"
+        send_echo_reply(peer, msg, father)
     # received echo message for the first time 
-    elif echoMsg is not (msg[1], msg[2]):
-        print "case 2"
+    elif echoMsg != (msg[1], msg[2]):
+        print "First time i receive echo message. Send echo to all other neighbors"
+        neighbor_replies = []
         echoMsg = (msg[1], msg[2])
-        global father 
         father = address
         send_echo(peer, msg, address)
-    # Received echo message for the second time (4
-    elif echoMsg == (msg[1], msg[2]):
-        print "case 3"
-        send_echo_reply(peer, msg, address)
     else:
-        print "case 4"
+        print "Send an echo reply to:"
+
         send_echo_reply(peer, msg, address)
 
 # Sends an echo reply message
 def send_echo_reply(peer, msg, address):
-    print "ADDRESS"
-    print address
+    print msg[2]
+    print "send echo reply to address " + str(address)
     encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1), OP_NOOP, 0)
     peer.sendto(encripted_msg, address)
 	
@@ -143,9 +154,11 @@ def main(argv):
     neighbors = []
     # TODO: Make global and no duplicate values between nodes
     global x 
-    x = random.randint(0, 10)    
+    #x = random.randint(0, 99)    
     global y
-    y = random.randint(0, 10)
+    #y = random.randint(0, 99)
+    x = int(argv[1])
+    y = int(argv[2])
 
     global value
     value = random.randint(0, 259898)
@@ -169,9 +182,9 @@ def main(argv):
     # Set the socket multicast TTL so it can send multicast messages.
     peer.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, 2)
 
-
+    port = INADDR_ANY
     # Bind the socket to a random port.
-    peer.bind(('', INADDR_ANY))
+    peer.bind(('', port))
 
     ## This is the event loop.
     window = MainWindow()
@@ -211,7 +224,6 @@ def main(argv):
             pass
         try: 
             message, address  = peer.recvfrom(1024)
-            print message_decode(message)
             handle_message(peer, mcast, message, address)
         except error:
             pass
@@ -239,6 +251,7 @@ def main(argv):
         elif(command == "wave"):
             waveSeqNr += 1
             window.writeln("Starting wave...")
+            print (x,y)
             encripted_message = message_encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1),
                     OP_NOOP, 0) 
             # Send wave message to all numbers 1)
@@ -246,6 +259,7 @@ def main(argv):
                 peer.sendto(encripted_message, i[1])
                 #peer.sendto("ECHO_MSG", i[1])
 		# If now input than pass
+		# If no input than pass
         elif(command == ""):
             pass
         else:
