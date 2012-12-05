@@ -97,13 +97,18 @@ def recv_echo(peer, msg, address):
     global echoMsg
     global neighbor_replies
     global father 
+    operation = msg[4]
+
     # when 1 neighbor send echo reply (3
     if len(neighbors) == 1:
-        print "case 1"
         # Father is in this case the sender
         father = address
         print "Received echo message from my only neighbor send him an echo reply"
-        send_echo_reply(peer, msg, father)
+
+        if(msg[4] == OP_SIZE):
+            send_echo_reply_size(peer, msg, father, 1)
+        else:
+            send_echo_reply(peer, msg, father)
     # received echo message for the first time 
     elif echoMsg != (msg[1], msg[2]):
         print "First time i receive echo message. Send echo to all other neighbors"
@@ -113,8 +118,14 @@ def recv_echo(peer, msg, address):
         send_echo(peer, msg, address)
     else:
         print "Send an echo reply to:"
-
         send_echo_reply(peer, msg, address)
+
+# Sends an echo reply message in case operation is OP_SIZE
+def send_echo_reply_size(peer, msg, address, size):
+    print "send echo size reply to address " + str(address)
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
+            OP_SIZE, size)
+    peer.sendto(encripted_msg, address)
 
 # Sends an echo reply message
 def send_echo_reply(peer, msg, address):
@@ -230,11 +241,13 @@ def main(argv):
         
         #See if there was GUI input
         command = window.getline()
+
         # Send a ping to the rest
         if(command == "ping"):
             neighbors = []
             window.writeln("Sending ping over multicast...")
             send_ping(peer)
+
         # Show the list of neighbors
         elif(command == "list"):
             window.writeln("List of neighbors <(x,y), ip:port>:")
@@ -242,11 +255,13 @@ def main(argv):
                 window.writeln("No neighbors found")
             for i in neighbors:
                 window.writeln(str(i[0]) + ", " + str(i[1][0]) + ":" + str(i[1][1]))
+
         # Move to a new random position
         elif(command == "move"):
             x = random.randint(0, 99)
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
+
 		# Initiate wave
         elif(command == "wave"):
             waveSeqNr += 1
@@ -254,11 +269,21 @@ def main(argv):
             print (x,y)
             encripted_message = message_encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1),
                     OP_NOOP, 0) 
-            # Send wave message to all numbers 1)
+            # Send wave message to all neighbors 1)
             for i in neighbors:
                 peer.sendto(encripted_message, i[1])
-                #peer.sendto("ECHO_MSG", i[1])
-		# If now input than pass
+                
+        # Initiatie wave with size op
+        elif(command == "size" ):
+            waveSeqNr += 1
+            window.writeln("Starting wave...")
+            print (x,y)
+            encripted_message = message_encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1),
+                    OP_SIZE, 0) 
+            # Send wave message to all neighbors 1)
+            for i in neighbors:
+                peer.sendto(encripted_message, i[1])
+
 		# If no input than pass
         elif(command == ""):
             pass
