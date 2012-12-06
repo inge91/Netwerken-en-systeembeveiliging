@@ -55,14 +55,17 @@ def handle_message(peer, mcast, message, address):
         recv_echo(peer, decripted_message, address)
     # remove sender of echoreply when still in the peerlist 
     if decripted_message[0] == MSG_ECHO_REPLY:
+        print "received echo reply from"
+        print address
         if address in peerlist:
             peerlist.remove(address)
         if len(peerlist) is 0:
-            if(x == decripted_message[2][0], y == decripted_message[2][1]):
-                print("wave ended")
+            print "peerlist is zero"
+            if(x == decripted_message[2][0] and y == decripted_message[2][1]):
+                print "i am initiator"
+                print "wave ended"
             else:
                 send_echo_reply(peer, decripted_message)
-	
 	
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
@@ -70,9 +73,12 @@ def send_echo(peer, msg, father):
     peerlist = []
     msg = message_encode(MSG_ECHO,msg[1], msg[2], (0,0), OP_NOOP, 0)
     for (neighbor, address) in neighbors:
-        if address is not father:
+        if address != father:
             peer.sendto(msg, address)
             peerlist.append(address)
+    print "my peerlist is ",
+    print peerlist
+
 # Handle actions in case of receiving an echo
 def recv_echo(peer, msg, address):
     global echoMsg
@@ -80,18 +86,23 @@ def recv_echo(peer, msg, address):
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
-        print("case 1")
+        print("Got a echo message from my only neighbor "),
+        print(address)
         # Father is in this case the sender
         father = address
         send_echo_reply(peer, msg)
     # received echo message for the first time 
      # send through and add peer to peerlist
     elif echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
+        print "received my first echo message from",
+        print address
+        print "send to all my other peers"
         echoMsg = (msg[1], msg[2])
         father = address
         send_echo(peer, msg, address)
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
+        print "send echo reply. (Got message for second time)"
         send_echo_reply(peer, msg)
         
 
@@ -131,9 +142,11 @@ def main(argv):
     neighbors = []
     # TODO: Make global and no duplicate values between nodes
     global x 
-    x = random.randint(0, 10)    
+    #x = random.randint(0, 10)    
     global y
-    y = random.randint(0, 10)
+    #y = random.randint(0, 10)
+    x = int(argv[1])
+    y = int(argv[2])
 
     global value
     value = random.randint(0, 259898)
@@ -235,7 +248,6 @@ def main(argv):
             pass
         else:
             window.writeln("\"" + command + "\" is not a valid command")
-
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
