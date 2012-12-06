@@ -30,6 +30,8 @@ def send_pong(socket, initiator, address):
 def handle_message(peer, mcast, message, address):
     global x
     global y
+    global size
+    global neighbor_replies
     #First decript the message
     decripted_message = message_decode(message)
     
@@ -56,7 +58,6 @@ def handle_message(peer, mcast, message, address):
     # add echo reply to all 
     if decripted_message[0] == MSG_ECHO_REPLY:
         print "Got echo reply"
-        global neighbor_replies
         neighbor_replies.append(address)
         #FIXME Make check of replies better
         print "Neighbor and replies"
@@ -68,23 +69,46 @@ def handle_message(peer, mcast, message, address):
         # In case you are initiater stop the wave by doing nothing
         if(x == decripted_message[2][0] and y == decripted_message[2][1]):
             print "I am initiator"
+            size += decripted_message[5]
             if(len(neighbor_replies) == len(neighbors)) :
                 print "wave ended"
+                size += 1
+                if size > 1 :
+                    print "size: ",
+                    print size
                 neighbor_replies = []
+
             # Send echo reply to father 5)
         else:   
             print "I am not initiator"
+            if decripted_message[4] == OP_SIZE:
+                print "Received OPSIZE message"
+                size += decripted_message[5]
             # Got echo reply from everybody but father
-            if(len(neighbor_replies) == (len(neighbors)-1)):
+            if(len(neighbor_replies) >= (len(neighbors)-1)):
                 global father
-                send_echo_reply(peer, decripted_message, father)
-                neighbor_replies = []
+                if decripted_message[4] == OP_SIZE:
+                    send_echo_reply_size(peer, decripted_message, father, size + 1)
+                else:
+                    send_echo_reply(peer, decripted_message, father)
+                    neighbor_replies = []
 
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
     print msg[2]
     print "send echo message to ",
     msg = message_encode(MSG_ECHO,msg[1], msg[2], (-1, -1), OP_NOOP, 0)
+    for (neighbor, address) in neighbors:
+        if address != father:
+            print str(address),
+            peer.sendto(msg, address) 
+
+# sends message in wave to neighbors except father (got message from) In case of
+# op = OP_NOOP
+def send_echo_size(peer, msg, father):
+    print msg[2]
+    print "send echo message to ",
+    msg = message_encode(MSG_ECHO,msg[1], msg[2], (-1, -1), OP_SIZE, 0)
     for (neighbor, address) in neighbors:
         if address != father:
             print str(address),
@@ -106,6 +130,7 @@ def recv_echo(peer, msg, address):
         print "Received echo message from my only neighbor send him an echo reply"
 
         if(msg[4] == OP_SIZE):
+            print " OP was OP_SIZE, send reply with size 1"
             send_echo_reply_size(peer, msg, father, 1)
         else:
             send_echo_reply(peer, msg, father)
@@ -115,10 +140,18 @@ def recv_echo(peer, msg, address):
         neighbor_replies = []
         echoMsg = (msg[1], msg[2])
         father = address
-        send_echo(peer, msg, address)
+        if(msg[4] == OP_SIZE):
+            send_echo_size(peer, msg, address)
+        else:
+            send_echo(peer, msg, address)
+    # Received echo message for the second time, NO_OP message to sender
     else:
         print "Send an echo reply to:"
-        send_echo_reply(peer, msg, address)
+        if(msg[4] == OP_SIZE):
+            #FIXME: This should not be a OP_SIZE message
+            send_echo_reply_size(peer, msg, address, 0)
+        else:
+            send_echo_reply(peer, msg, address)
 
 # Sends an echo reply message in case operation is OP_SIZE
 def send_echo_reply_size(peer, msg, address, size):
@@ -149,6 +182,9 @@ def main(argv):
 
     #last received echo message
     global echoMsg
+    global size 
+    size = 0
+
     echoMsg = (0, 0)
 
     global neighbor_replies
@@ -276,7 +312,7 @@ def main(argv):
         # Initiatie wave with size op
         elif(command == "size" ):
             waveSeqNr += 1
-            window.writeln("Starting wave...")
+            window.writeln("Starting wave to get size...")
             print (x,y)
             encripted_message = message_encode(MSG_ECHO, waveSeqNr, (x,y), (-1, -1),
                     OP_SIZE, 0) 
