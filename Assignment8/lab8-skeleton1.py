@@ -32,8 +32,8 @@ def handle_message(peer, mcast, message, address):
     global y
     #First decript the message
     decripted_message = message_decode(message)
-    print("Message")
-    print(decripted_message[0])
+   # print("Message")
+   # print(decripted_message[0])
     
     # When receiving message, send pong message in case
     # of being close enough
@@ -52,11 +52,9 @@ def handle_message(peer, mcast, message, address):
 	# In case of echo message set sender as father and 
 	#		send message to neighbors
     if decripted_message[0] == MSG_ECHO:
-        print("received echo")
         recv_echo(peer, decripted_message, address)
     # remove sender of echoreply when still in the peerlist 
     if decripted_message[0] == MSG_ECHO_REPLY:
-        print("Got echo reply")
         if address in peerlist:
             peerlist.remove(address)
         if len(peerlist) is 0:
@@ -68,22 +66,17 @@ def handle_message(peer, mcast, message, address):
 	
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
-    print("send echo")
     global peerlist 
     peerlist = []
     msg = message_encode(MSG_ECHO,msg[1], msg[2], (0,0), OP_NOOP, 0)
     for (neighbor, address) in neighbors:
         if address is not father:
-            peer.sendto(msg, address) 
+            peer.sendto(msg, address)
             peerlist.append(address)
 # Handle actions in case of receiving an echo
 def recv_echo(peer, msg, address):
     global echoMsg
-    print("messgaes")
-    print(echoMsg[0])
-    print(msg[1])
-    print(echoMsg[1])
-    print(msg[2])
+    global father
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
@@ -94,18 +87,11 @@ def recv_echo(peer, msg, address):
     # received echo message for the first time 
      # send through and add peer to peerlist
     elif echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
-        print("case 2")
-        print(echoMsg ) 
-        print("----")
-        print(msg[1], msg[2])
         echoMsg = (msg[1], msg[2])
-        global father 
         father = address
         send_echo(peer, msg, address)
 	# Received echo message for the second time (4
-    # FIXME  This doesnt work for some reason
-    elif echoMsg[0] is msg[1] and echoMsg[1] is msg[2]:
-        print("case 4")
+    elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
         send_echo_reply(peer, msg)
         
 
@@ -213,7 +199,7 @@ def main(argv):
             pass
         try: 
             message, address  = peer.recvfrom(1024)
-            print( message_decode(message))
+            #print( message_decode(message))
             handle_message(peer, mcast, message, address)
         except error:
             pass
