@@ -211,6 +211,12 @@ def main(argv):
     # Bind the socket to a random port.
     peer.bind(('', INADDR_ANY))
 
+    # Find ip and port number
+    #TODO find ip address
+    #peer.connect(('google.com', 0))
+    ip, port = peer.getsockname()
+
+
     global window
     ## This is the event loop.
     window = MainWindow()
@@ -218,7 +224,7 @@ def main(argv):
     print( (x,y))
 
     # Show information of newly connected node TODO: Display Local IP
-    ip_port = "IP:Port = " + str(MCAST_GRP) + ":" + str(INADDR_ANY)
+    ip_port = "IP:Port = " + str(ip) + ":" + str(port)
     window.writeln(ip_port)
 
     window.writeln("position = (" + str(x) + ", " + str(y) + ")")
