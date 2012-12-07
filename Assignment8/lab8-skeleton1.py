@@ -54,22 +54,18 @@ def handle_message(peer, mcast, message, address):
 	# In case of echo message set sender as father and 
 	#		send message to neighbors
     if decripted_message[0] == MSG_ECHO:
-        print "GOT ECHO MESSAGE"
         recv_echo(peer, decripted_message, address)
     # remove sender of echoreply when still in the peerlist 
     if decripted_message[0] == MSG_ECHO_REPLY:
-        print "received echo reply from"
-        print address
         if address in peerlist:
             peerlist.remove(address)
         if(decripted_message[4] == OP_SIZE):
             size += decripted_message[5]
         if len(peerlist) == 0:
-            print "peerlist is zero"
             if(x == decripted_message[2][0] and y == decripted_message[2][1]):
                 size += 1
-                print "i am initiator"
-                print "wave ended"
+                window.writeln("Wave ended")
+                #TODO: Make more pretty
                 if size > 1:
                     print "size is:"
                     print size
@@ -80,7 +76,6 @@ def handle_message(peer, mcast, message, address):
                     send_echo_reply_size(peer, father, decripted_message, size + 1)
                 else:
                     send_echo_reply(peer, father, decripted_message)
-                print "RESET FATHER"
                 father = (-1, -1)
 	
 # sends message in wave to neighbors except father (got message from)
@@ -93,8 +88,6 @@ def send_echo(peer, msg, option):
         if address != father:
             peer.sendto(msg, address)
             peerlist.append(address)
-    print "my peerlist is ",
-    print peerlist
 
 # Handle actions in case of receiving an echo
 def recv_echo(peer, msg, address):
@@ -104,40 +97,26 @@ def recv_echo(peer, msg, address):
     # when 1 neighbor send echo reply (3
     if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
 
-        print "MAKE FATHER"
         # Father is in this case the sender
         father = address
         if (msg[4] == OP_SIZE):
-            print("Got a OP_SIZE  echo message from my only neighbor "),
-            print(address)
             send_echo_reply_size(peer, father,  msg, 1)
         else:
-            print("Got a OP_NOOP  echo message from my only neighbor "),
-            print(address)
             send_echo_reply(peer, father, msg)
-        print "RESET FATHER"
         father =(-1, -1)
 
     # received echo message for the first time 
      # send through and add peer to peerlist
     elif echoMsg[0] != msg[1] or echoMsg[1] != msg[2]:
         echoMsg = (msg[1], msg[2])
-        print "MAKE FATHER"
         father = address
         if(msg[4] == OP_SIZE):
-            print "received my first OP_SIZE echo message from",
-            print address
-            print "send to all my other peers"
             send_echo(peer, msg, OP_SIZE)
         else:
-            print "received my first OP_NOOP echo message from",
-            print address
-            print "send to all my other peers"
             send_echo(peer, msg, OP_NOOP)
 
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
-        print "HERE?"
         #FIXME
         if(msg[4] == OP_SIZE):
             print "send echo reply. (Got OP_SIZE message for second time)"
@@ -148,7 +127,7 @@ def recv_echo(peer, msg, address):
         #print "RESET FATHER"
         #father = (-1, -1)
     else:
-        print "This is an entire new situation"
+        print "You shouldn't be here!"
         
 # Sends an echo reply message with op = OP_SIZE
 def send_echo_reply_size(peer,address,  msg, size):
@@ -232,6 +211,7 @@ def main(argv):
     # Bind the socket to a random port.
     peer.bind(('', INADDR_ANY))
 
+    global window
     ## This is the event loop.
     window = MainWindow()
 
