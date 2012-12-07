@@ -55,6 +55,7 @@ def handle_message(peer, mcast, message, address):
         print "received echo"
         print decripted_message[2]
         recv_echo(peer, decripted_message,address)
+
     # add echo reply to all 
     if decripted_message[0] == MSG_ECHO_REPLY:
         print "Got echo reply"
@@ -77,6 +78,7 @@ def handle_message(peer, mcast, message, address):
                     print "size: ",
                     print size
                 neighbor_replies = []
+            size = 0
 
             # Send echo reply to father 5)
         else:   
@@ -92,6 +94,7 @@ def handle_message(peer, mcast, message, address):
                 else:
                     send_echo_reply(peer, decripted_message, father)
                     neighbor_replies = []
+                size = 0
 
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, father):
@@ -134,6 +137,7 @@ def recv_echo(peer, msg, address):
             send_echo_reply_size(peer, msg, father, 1)
         else:
             send_echo_reply(peer, msg, father)
+
     # received echo message for the first time 
     elif echoMsg != (msg[1], msg[2]):
         print "First time i receive echo message. Send echo to all other neighbors"

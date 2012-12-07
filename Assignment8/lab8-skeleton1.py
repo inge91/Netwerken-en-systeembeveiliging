@@ -30,6 +30,8 @@ def send_pong(socket, initiator, address):
 def handle_message(peer, mcast, message, address):
     global x
     global y
+    global size
+    global father
     #First decript the message
     decripted_message = message_decode(message)
    # print("Message")
@@ -52,6 +54,7 @@ def handle_message(peer, mcast, message, address):
 	# In case of echo message set sender as father and 
 	#		send message to neighbors
     if decripted_message[0] == MSG_ECHO:
+        print "GOT ECHO MESSAGE"
         recv_echo(peer, decripted_message, address)
     # remove sender of echoreply when still in the peerlist 
     if decripted_message[0] == MSG_ECHO_REPLY:
@@ -59,19 +62,33 @@ def handle_message(peer, mcast, message, address):
         print address
         if address in peerlist:
             peerlist.remove(address)
-        if len(peerlist) is 0:
+        if(decripted_message[4] == OP_SIZE):
+            size += decripted_message[5]
+        if len(peerlist) == 0:
             print "peerlist is zero"
             if(x == decripted_message[2][0] and y == decripted_message[2][1]):
+                size += 1
                 print "i am initiator"
                 print "wave ended"
+                if size > 1:
+                    print "size is:"
+                    print size
+
+                size = 0
             else:
-                send_echo_reply(peer, decripted_message)
+                if decripted_message[4] == OP_SIZE:
+                    send_echo_reply_size(peer, father, decripted_message, size + 1)
+                else:
+                    send_echo_reply(peer, father, decripted_message)
+                print "RESET FATHER"
+                father = (-1, -1)
 	
 # sends message in wave to neighbors except father (got message from)
-def send_echo(peer, msg, father):
+def send_echo(peer, msg, option):
     global peerlist 
+    global father
     peerlist = []
-    msg = message_encode(MSG_ECHO,msg[1], msg[2], (0,0), OP_NOOP, 0)
+    msg = message_encode(MSG_ECHO, msg[1], msg[2], (0,0), option, 0)
     for (neighbor, address) in neighbors:
         if address != father:
             peer.sendto(msg, address)
@@ -86,30 +103,63 @@ def recv_echo(peer, msg, address):
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
-        print("Got a echo message from my only neighbor "),
-        print(address)
+
+        print "MAKE FATHER"
         # Father is in this case the sender
         father = address
-        send_echo_reply(peer, msg)
+        if (msg[4] == OP_SIZE):
+            print("Got a OP_SIZE  echo message from my only neighbor "),
+            print(address)
+            send_echo_reply_size(peer, father,  msg, 1)
+        else:
+            print("Got a OP_NOOP  echo message from my only neighbor "),
+            print(address)
+            send_echo_reply(peer, father, msg)
+        print "RESET FATHER"
+        father =(-1, -1)
+
     # received echo message for the first time 
      # send through and add peer to peerlist
-    elif echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
-        print "received my first echo message from",
-        print address
-        print "send to all my other peers"
+    elif echoMsg[0] != msg[1] or echoMsg[1] != msg[2]:
         echoMsg = (msg[1], msg[2])
+        print "MAKE FATHER"
         father = address
-        send_echo(peer, msg, address)
+        if(msg[4] == OP_SIZE):
+            print "received my first OP_SIZE echo message from",
+            print address
+            print "send to all my other peers"
+            send_echo(peer, msg, OP_SIZE)
+        else:
+            print "received my first OP_NOOP echo message from",
+            print address
+            print "send to all my other peers"
+            send_echo(peer, msg, OP_NOOP)
+
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
-        print "send echo reply. (Got message for second time)"
-        send_echo_reply(peer, msg)
+        print "HERE?"
+        #FIXME
+        if(msg[4] == OP_SIZE):
+            print "send echo reply. (Got OP_SIZE message for second time)"
+            send_echo_reply_size(peer, address, msg, 0)
+        else:
+            print "send echo reply. (Got OP_NOOP message for second time)"
+            send_echo_reply(peer, address, msg)
+        #print "RESET FATHER"
+        #father = (-1, -1)
+    else:
+        print "This is an entire new situation"
         
+# Sends an echo reply message with op = OP_SIZE
+def send_echo_reply_size(peer,address,  msg, size):
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
+            OP_SIZE, size)
+    peer.sendto(encripted_msg, address)
 
 # Sends an echo reply message
-def send_echo_reply(peer, msg):
+def send_echo_reply(peer, address, msg):
     encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1), OP_NOOP, 0)
-    peer.sendto(encripted_msg, father)
+    peer.sendto(encripted_msg, address)
 	
 def socket_subscribe_mcast(sock, ip):
     """
@@ -137,9 +187,14 @@ def main(argv):
 
     global waveSeqNr
     waveSeqNr = 0
+
     # Set some of the global variables
     global neighbors
     neighbors = []
+
+    global peerlist
+    peerlist = []
+
     # TODO: Make global and no duplicate values between nodes
     global x 
     #x = random.randint(0, 10)    
@@ -150,6 +205,9 @@ def main(argv):
 
     global value
     value = random.randint(0, 259898)
+
+    global size 
+    size = 0
 
     ## Create the multicast listener socket and suscribe to multicast.
     mcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
@@ -219,11 +277,13 @@ def main(argv):
         
         #See if there was GUI input
         command = window.getline()
+
         # Send a ping to the rest
         if(command == "ping"):
             neighbors = []
             window.writeln("Sending ping over multicast...")
             send_ping(peer)
+
         # Show the list of neighbors
         elif(command == "list"):
             window.writeln("List of neighbors <(x,y), ip:port>:")
@@ -231,18 +291,31 @@ def main(argv):
                 window.writeln("No neighbors found")
             for i in neighbors:
                 window.writeln(str(i[0]) + ", " + str(i[1][0]) + ":" + str(i[1][1]))
+
         # Move to a new random position
         elif(command == "move"):
             x = random.randint(0, 99)
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
+
 		# Initiate wave
         elif(command == "wave"):
             waveSeqNr += 1
             window.writeln("Starting wave...")
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
             # Send wave message to all numbers 1)
-            send_echo(peer, msg, 0)
+            send_echo(peer, msg, OP_NOOP)
+
+        # Initiatie wave with size op
+        elif(command == "size" ):
+            # Make sure start with size = 0
+            size = 0
+            waveSeqNr += 1
+            window.writeln("Starting wave to get size...")
+            msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
+            # Send wave message to all numbers 1)
+            send_echo(peer, msg, OP_SIZE)
+
 		# If now input than pass
         elif(command == ""):
             pass
