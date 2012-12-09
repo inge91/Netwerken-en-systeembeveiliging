@@ -63,17 +63,14 @@ def handle_echo_reply(peer, decripted_message, address):
     global size
     global father
     global size_wave
+    global sum_wave
     # This should always be the case
     if address in peerlist:
         peerlist.remove(address)
     # If it is an OP_SIZE message add the size
-    if(decripted_message[4] == OP_SIZE):
-        print "Got message from ",
-        print address
-        print "size is now:",
+    if(decripted_message[4] == OP_SIZE or decripted_message[4] == OP_SIZE):
         size += decripted_message[5]
-        print size
-
+        
     # All peers have send an echo reply
     if len(peerlist) == 0:
         # If we are the initiatorend the wave
@@ -87,17 +84,29 @@ def handle_echo_reply(peer, decripted_message, address):
                 # Make size_wave false
                 size_wave = False
                 size = 0
+            elif sum_wave:
+                size += value
+                window.writeln("The sum of all sensor values is: " + str(size))
+                sum_wave = False
+                size = 0
             print "-----------------------"
+    
 
         else:
             # Send echo reply to father, with or without OP_SIZE
             if size_wave:
                 send_echo_reply_size(peer, father, decripted_message, size + 1)
                 size = 0
+            elif sum_wave:
+                send_echo_reply_size(peer, father, decripted_message, size +
+                        value)
+                size = 0
+
             else:
                 send_echo_reply(peer, father, decripted_message)
             father = (-1, -1)
             size_wave = False
+            sum_wave = False
 
 	
 # sends message in wave to neighbors except father (got message from)
@@ -116,16 +125,22 @@ def recv_echo(peer, msg, address):
     global echoMsg
     global father
     global size_wave
+    global sum_wave
 
     # when 1 neighbor send echo reply (3
-    if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
+    if len(neighbors) == 1 and echoMsg[0] != msg[1] and echoMsg[1] != msg[2]:
+        print "1 neighbor send message"
 
         # Father is in this case the sender
         father = address
         if (msg[4] == OP_SIZE):
             send_echo_reply_size(peer, father,  msg, 1)
-        else:
+        elif (msg[4] == OP_SUM):
+            send_echo_reply_size(peer, father,  msg, value)
+        elif (msg[4] == OP_NOOP):
             send_echo_reply(peer, father, msg)
+        else:
+            "You should'nt be here"
         father =(-1, -1)
 
     # received echo message for the first time 
@@ -134,10 +149,14 @@ def recv_echo(peer, msg, address):
         echoMsg = (msg[1], msg[2])
         father = address
         if(msg[4] == OP_SIZE):
-            send_echo(peer, msg, OP_SIZE)
             size_wave = True
-        else:
+            send_echo(peer, msg, OP_SIZE)
+        elif(msg[4] == OP_SUM):
+            sum_wave = True
+            send_echo(peer, msg, OP_SUM)
+        elif(msg[4] == OP_NOOP):
             send_echo(peer, msg, OP_NOOP)
+        else: "You shouldn't be here"
 
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
@@ -177,6 +196,9 @@ def main(argv):
     global size_wave
     size_wave = False
 
+    global sum_wave
+    sum_wave = False
+
     #last received echo message
     global echoMsg
     echoMsg = (0, 0)
@@ -207,7 +229,7 @@ def main(argv):
     y = int(argv[2])
 
     global value
-    value = random.randint(0, 259898)
+    value = random.randint(0, 10)
 
     global size 
     size = 0
@@ -311,6 +333,7 @@ def main(argv):
 		# Initiate wave
         elif(command == "wave"):
             size_wave = False
+            sum_wave = False
             waveSeqNr += 1
             window.writeln("Starting wave...")
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
@@ -327,6 +350,17 @@ def main(argv):
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
             # Send wave message to all numbers 1)
             send_echo(peer, msg, OP_SIZE)
+
+        # Initiatie wave with size op
+        elif(command == "sum" ):
+            sum_wave = True
+            # Make sure start with size = 0
+            size = 0
+            waveSeqNr += 1
+            window.writeln("Starting wave to get sum...")
+            msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
+            # Send wave message to all numbers 1)
+            send_echo(peer, msg, OP_SUM)
 
 		# If now input than pass
         elif(command == ""):
