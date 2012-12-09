@@ -56,10 +56,10 @@ def handle_message(peer, mcast, message, address):
 
     # remove sender of echoreply when still in the peerlist 
     if decripted_message[0] == MSG_ECHO_REPLY:
-        handle_echo_reply(decripted_message, address)
+        handle_echo_reply(peer, decripted_message, address)
 
 # Handling an incoming echo_reply
-def handle_echo_reply(decripted_message, address):
+def handle_echo_reply(peer, decripted_message, address):
     global size
     global father
     global size_wave
@@ -91,12 +91,13 @@ def handle_echo_reply(decripted_message, address):
 
         else:
             # Send echo reply to father, with or without OP_SIZE
-            if decripted_message[4] == OP_SIZE:
+            if size_wave:
                 send_echo_reply_size(peer, father, decripted_message, size + 1)
                 size = 0
             else:
                 send_echo_reply(peer, father, decripted_message)
             father = (-1, -1)
+            size_wave = False
 
 	
 # sends message in wave to neighbors except father (got message from)
@@ -114,6 +115,7 @@ def send_echo(peer, msg, option):
 def recv_echo(peer, msg, address):
     global echoMsg
     global father
+    global size_wave
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) is 1 and echoMsg[0] is not msg[1] and echoMsg[1] is not msg[2]:
@@ -133,18 +135,15 @@ def recv_echo(peer, msg, address):
         father = address
         if(msg[4] == OP_SIZE):
             send_echo(peer, msg, OP_SIZE)
+            size_wave = True
         else:
             send_echo(peer, msg, OP_NOOP)
 
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
         #FIXME
-        if(msg[4] == OP_SIZE):
-            print "send echo reply. (Got OP_SIZE message for second time)"
-            send_echo_reply_size(peer, address, msg, 0)
-        else:
-            print "send echo reply. (Got OP_NOOP message for second time)"
-            send_echo_reply(peer, address, msg)
+        print "send echo reply. (Got OP_NOOP message for second time)"
+        send_echo_reply(peer, address, msg)
         #print "RESET FATHER"
         #father = (-1, -1)
     else:
