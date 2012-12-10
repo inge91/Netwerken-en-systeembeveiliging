@@ -506,8 +506,8 @@ def main(argv):
 		# Initiatie wave with min op
         elif(command == "min" ):
             min_wave = True
-            # Make sure start with size = 0
-            size = 0
+            # Make sure start with minimum = value
+            minimum = value 
             waveSeqNr += 1
             window.writeln("Starting wave to get min...")
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
@@ -517,8 +517,8 @@ def main(argv):
 		# Initiatie wave with max op
         elif(command == "max" ):
             max_wave = True
-            # Make sure start with size = 0
-            size = 0
+            # Make sure start with maximum = value
+            maximum = value
             waveSeqNr += 1
             window.writeln("Starting wave to get max...")
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
