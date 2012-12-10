@@ -61,16 +61,28 @@ def handle_message(peer, mcast, message, address):
 # Handling an incoming echo_reply
 def handle_echo_reply(peer, decripted_message, address):
     global size
+    global minimum
+    global maximum
     global father
     global size_wave
     global sum_wave
+    global min_wave
+    global max_wave
     # This should always be the case
     if address in peerlist:
         peerlist.remove(address)
     # If it is an OP_SIZE message add the size
     if(decripted_message[4] == OP_SIZE or decripted_message[4] == OP_SIZE):
         size += decripted_message[5]
-        
+	
+    if(decripted_message[4] == OP_MIN):
+        if decripted_message[5] < minimum:
+            minimum = decripted_message[5]
+
+    if(decripted_message[4] == OP_MAX):
+        if decripted_message[5] > maximum:
+            maximum = decripted_message[5]
+
     # All peers have send an echo reply
     if len(peerlist) == 0:
         # If we are the initiatorend the wave
@@ -89,7 +101,17 @@ def handle_echo_reply(peer, decripted_message, address):
                 window.writeln("The sum of all sensor values is: " + str(size))
                 sum_wave = False
                 size = 0
-            print "-----------------------"
+            elif min_wave:
+                window.writeln("The minimum sensor value in the network	is: " 
+                    + str(minimum))
+                minimum = value
+                min_wave = False
+            elif max_wave:
+                window.writeln("The maximum sensor value in the network is: " 
+                    + str(maximum))
+                maximum = value
+                max_wave = False
+            print( "-----------------------")
     
 
         else:
@@ -101,13 +123,19 @@ def handle_echo_reply(peer, decripted_message, address):
                 send_echo_reply_size(peer, father, decripted_message, size +
                         value)
                 size = 0
-
+            elif min_wave:
+                send_echo_reply_min(peer, father, decripted_message, minimum)
+                minimum = value
+            elif max_wave:
+                send_echo_reply_min(peer, father, decripted_message, maximum)
+                maximum = value
             else:
                 send_echo_reply(peer, father, decripted_message)
             father = (-1, -1)
             size_wave = False
             sum_wave = False
-
+            min_wave = False
+            max_wave = False
 	
 # sends message in wave to neighbors except father (got message from)
 def send_echo(peer, msg, option):
@@ -126,10 +154,12 @@ def recv_echo(peer, msg, address):
     global father
     global size_wave
     global sum_wave
+    global min_wave
+    global max_wave
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) == 1 and echoMsg[0] != msg[1] and echoMsg[1] != msg[2]:
-        print "1 neighbor send message"
+        print( "1 neighbor send message")
 
         # Father is in this case the sender
         father = address
@@ -137,6 +167,10 @@ def recv_echo(peer, msg, address):
             send_echo_reply_size(peer, father,  msg, 1)
         elif (msg[4] == OP_SUM):
             send_echo_reply_size(peer, father,  msg, value)
+        elif (msg[4] == OP_MIN):
+            send_echo_reply_min(peer, father,  msg, value)
+        elif (msg[4] == OP_MAX):
+            send_echo_reply_max(peer, father,  msg, value)
         elif (msg[4] == OP_NOOP):
             send_echo_reply(peer, father, msg)
         else:
@@ -148,7 +182,13 @@ def recv_echo(peer, msg, address):
     elif echoMsg[0] != msg[1] or echoMsg[1] != msg[2]:
         echoMsg = (msg[1], msg[2])
         father = address
-        if(msg[4] == OP_SIZE):
+        if(msg[4] == OP_MIN):
+            min_wave = True
+            send_echo(peer, msg, OP_MIN)
+        elif(msg[4] == OP_MAX):
+            max_wave = True
+            send_echo(peer, msg, OP_MAX)
+        elif(msg[4] == OP_SIZE):
             size_wave = True
             send_echo(peer, msg, OP_SIZE)
         elif(msg[4] == OP_SUM):
@@ -161,17 +201,29 @@ def recv_echo(peer, msg, address):
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
         #FIXME
-        print "send echo reply. (Got OP_NOOP message for second time)"
+        print( "send echo reply. (Got OP_NOOP message for second time)")
         send_echo_reply(peer, address, msg)
         #print "RESET FATHER"
         #father = (-1, -1)
     else:
-        print "You shouldn't be here!"
+        print( "You shouldn't be here!")
         
 # Sends an echo reply message with op = OP_SIZE
 def send_echo_reply_size(peer,address,  msg, size):
     encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
             OP_SIZE, size)
+    peer.sendto(encripted_msg, address)
+
+# Sends an echo reply message with op = OP_MIN
+def send_echo_reply_min(peer,address,  msg, size):
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
+            OP_MIN, size)
+    peer.sendto(encripted_msg, address)
+
+# Sends an echo reply message with op = OP_MAX
+def send_echo_reply_size(peer,address,  msg, size):
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
+            OP_MAX, size)
     peer.sendto(encripted_msg, address)
 
 # Sends an echo reply message
@@ -199,6 +251,12 @@ def main(argv):
     global sum_wave
     sum_wave = False
 
+    global min_wave
+    min_wave = False
+
+    global max_wave
+    max_wave = False
+    
     #last received echo message
     global echoMsg
     echoMsg = (0, 0)
@@ -233,6 +291,12 @@ def main(argv):
 
     global size 
     size = 0
+
+    global minimum
+    minimum = value
+
+    global maximum
+    maximum = value
 
     ## Create the multicast listener socket and suscribe to multicast.
     mcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
@@ -361,6 +425,28 @@ def main(argv):
             msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
             # Send wave message to all numbers 1)
             send_echo(peer, msg, OP_SUM)
+		
+		# Initiatie wave with min op
+        elif(command == "min" ):
+            sum_wave = True
+            # Make sure start with size = 0
+            size = 0
+            waveSeqNr += 1
+            window.writeln("Starting wave to get min...")
+            msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
+            # Send wave message to all numbers 1)
+            send_echo(peer, msg, OP_MIN)
+			
+		# Initiatie wave with max op
+        elif(command == "max" ):
+            sum_wave = True
+            # Make sure start with size = 0
+            size = 0
+            waveSeqNr += 1
+            window.writeln("Starting wave to get max...")
+            msg = MSG_ECHO, waveSeqNr, (x,y), (-1, -1), OP_NOOP, 0 
+            # Send wave message to all numbers 1)
+            send_echo(peer, msg, OP_MAX)	
 
 		# If now input than pass
         elif(command == ""):
