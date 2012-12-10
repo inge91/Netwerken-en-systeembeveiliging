@@ -94,7 +94,7 @@ def handle_echo_reply(peer, decripted_message, address):
         print("chcking min")
         if decripted_message[5] < minimum:
             window.writeln(str(decripted_message[5]) + " is smaller than " +
-                    minimum)
+                    str(minimum))
             minimum = decripted_message[5]
 
     if(decripted_message[4] == OP_MAX):
@@ -104,7 +104,7 @@ def handle_echo_reply(peer, decripted_message, address):
         if decripted_message[5] > maximum:
             print("checking max")
             window.writeln(str(decripted_message[5]) + " is bigger than " +
-                    minimum)
+                    str(maximum))
 
     if(decripted_message[4] == OP_NOOP):
         window.writeln("Received OP_NOOP echo reply")
