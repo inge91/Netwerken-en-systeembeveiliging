@@ -104,8 +104,12 @@ def handle_echo_reply(peer, decripted_message, address):
         if decripted_message[5] > maximum:
             print("checking max")
             window.writeln(str(decripted_message[5]) + " is bigger than " +
+<<<<<<< HEAD
                    str(maximum))
             maximum = decripted_message[5]
+=======
+                    str(maximum))
+>>>>>>> 35b55bbb2b3c646c61297af641c11d852a0f9746
 
     if(decripted_message[4] == OP_NOOP):
         window.writeln("Received OP_NOOP echo reply")
