@@ -138,7 +138,7 @@ def handle_echo_reply(peer, decripted_message, address):
                     + str(maximum))
                 maximum = value
                 max_wave = False
-            print( "-----------------------")
+            window.writeln("\n\n -------------------------")
     
 
         else:
@@ -365,6 +365,11 @@ def main(argv):
     global maximum
     maximum = value
 
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.connect(('google.com', 0))
+    ip = s.getsockname()[0]
+    s.close()
+
     ## Create the multicast listener socket and suscribe to multicast.
     mcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     socket_subscribe_mcast(mcast, MCAST_GRP)
@@ -391,7 +396,7 @@ def main(argv):
     # Find ip and port number
     #TODO find ip address
     #peer.connect(('google.com', 0))
-    ip, port = peer.getsockname()
+    _, port = peer.getsockname()
 
 
     global window
