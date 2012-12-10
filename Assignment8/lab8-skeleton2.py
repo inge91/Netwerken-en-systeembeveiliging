@@ -94,7 +94,7 @@ def handle_echo_reply(peer, decripted_message, address):
         print("chcking min")
         if decripted_message[5] < minimum:
             window.writeln(str(decripted_message[5]) + " is smaller than " +
-                    minimum)
+                    str(minimum))
             minimum = decripted_message[5]
 
     if(decripted_message[4] == OP_MAX):
@@ -104,7 +104,8 @@ def handle_echo_reply(peer, decripted_message, address):
         if decripted_message[5] > maximum:
             print("checking max")
             window.writeln(str(decripted_message[5]) + " is bigger than " +
-                    minimum)
+                   str(maximum))
+            maximum = decripted_message[5]
 
     if(decripted_message[4] == OP_NOOP):
         window.writeln("Received OP_NOOP echo reply")
@@ -163,7 +164,7 @@ def handle_echo_reply(peer, decripted_message, address):
             elif max_wave:
                 window.writeln("Sending echo reply to " + str(father) + """ with
                         OP_MAX and payload = """ +  str(maximum) )
-                send_echo_reply_min(peer, father, decripted_message, maximum)
+                send_echo_reply_max(peer, father, decripted_message, maximum)
                 maximum = value
             else:
                 send_echo_reply(peer, father, decripted_message)
@@ -205,23 +206,23 @@ def recv_echo(peer, msg, address):
         elif (msg[4] == OP_SUM):
             window.writeln("Receiev OP_SIZE Echo Message from only neighbor" +
                     str(address))
-            window.writeln("Send back OP_SIZE echo reply with payload" +
+            window.writeln("Send back OP_SIZE echo reply with payload " +
                     str(value))
             send_echo_reply_size(peer, father,  msg, value)
         elif (msg[4] == OP_MIN):
             window.writeln("Receiev OP_MIN Echo Message from only neighbor" +
                     str(address))
-            window.writeln("Send back OP_MIN echo reply with payload" +
+            window.writeln("Send back OP_MIN echo reply with payload " +
                     str(value))
             send_echo_reply_min(peer, father,  msg, value)
         elif (msg[4] == OP_MAX):
-            window.writeln("Receiev OP_MAX Echo Message from only neighbor" +
+            window.writeln("Receiev OP_MAX Echo Message from only neighbor " +
                     str(address))
-            window.writeln("Send back OP_MAX echo reply with payload" +
+            window.writeln("Send back OP_MAX echo reply with payload " +
                     str(value))
             send_echo_reply_max(peer, father,  msg, value)
         elif (msg[4] == OP_NOOP):
-            window.writeln("Receiev OP_NOOP Echo Message from only neighbor" +
+            window.writeln("Receiev OP_NOOP Echo Message from only neighbor " +
                     str(address))
             window.writeln("Send back OP_NOOP echo reply\n")
             send_echo_reply(peer, father, msg)
