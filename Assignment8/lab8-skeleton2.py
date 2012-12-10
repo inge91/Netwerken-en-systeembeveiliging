@@ -76,11 +76,13 @@ def handle_echo_reply(peer, decripted_message, address):
         size += decripted_message[5]
 	
     if(decripted_message[4] == OP_MIN):
+        print("chcking min")
         if decripted_message[5] < minimum:
             minimum = decripted_message[5]
 
     if(decripted_message[4] == OP_MAX):
         if decripted_message[5] > maximum:
+            print("checking max")
             maximum = decripted_message[5]
 
     # All peers have send an echo reply
@@ -221,7 +223,7 @@ def send_echo_reply_min(peer,address,  msg, size):
     peer.sendto(encripted_msg, address)
 
 # Sends an echo reply message with op = OP_MAX
-def send_echo_reply_size(peer,address,  msg, size):
+def send_echo_reply_max(peer,address,  msg, size):
     encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
             OP_MAX, size)
     peer.sendto(encripted_msg, address)
@@ -428,7 +430,7 @@ def main(argv):
 		
 		# Initiatie wave with min op
         elif(command == "min" ):
-            sum_wave = True
+            min_wave = True
             # Make sure start with size = 0
             size = 0
             waveSeqNr += 1
@@ -439,7 +441,7 @@ def main(argv):
 			
 		# Initiatie wave with max op
         elif(command == "max" ):
-            sum_wave = True
+            max_wave = True
             # Make sure start with size = 0
             size = 0
             waveSeqNr += 1
