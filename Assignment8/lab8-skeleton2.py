@@ -72,18 +72,43 @@ def handle_echo_reply(peer, decripted_message, address):
     if address in peerlist:
         peerlist.remove(address)
     # If it is an OP_SIZE message add the size
-    if(decripted_message[4] == OP_SIZE or decripted_message[4] == OP_SIZE):
+    if(decripted_message[4] == OP_SIZE ):
+        window.writeln("Received OP_SIZE echo reply with payload "
+                +str(decripted_message[5]))
+        window.writeln("Received from " + str(address) )
         size += decripted_message[5]
+        window.writeln("New size = " + str(size) + "\n")
+        
+
+    if(decripted_message[4] == OP_SUM ):
+        window.writeln("Received OP_SUM echo reply with payload " +
+                str(decripted_message[5]))
+        window.writeln("Received from " + str(address))
+        size += decripted_message[5]
+        window.writeln("New sum = " + str(size) + "\n")
 	
     if(decripted_message[4] == OP_MIN):
+        window.writeln("Received OP_MIN echo reply with payload " +
+                str(decripted_message[5]))
+        window.writeln("Received from " + str(address) + "\n")
         print("chcking min")
         if decripted_message[5] < minimum:
+            window.writeln(str(decripted_message[5]) + " is smaller than " +
+                    minimum)
             minimum = decripted_message[5]
 
     if(decripted_message[4] == OP_MAX):
+        window.writeln("Received OP_MAX echo reply with payload " +
+                str(decripted_message[5]))
+        window.writeln("Received from " + str(address) + "\n")
         if decripted_message[5] > maximum:
             print("checking max")
-            maximum = decripted_message[5]
+            window.writeln(str(decripted_message[5]) + " is bigger than " +
+                    minimum)
+
+    if(decripted_message[4] == OP_NOOP):
+        window.writeln("Received OP_NOOP echo reply")
+        window.writeln("Received from " + str(address) + "\n")
 
     # All peers have send an echo reply
     if len(peerlist) == 0:
@@ -117,18 +142,27 @@ def handle_echo_reply(peer, decripted_message, address):
     
 
         else:
+            window.writeln("Got echo reply from all neighbors.")
             # Send echo reply to father, with or without OP_SIZE
             if size_wave:
+                window.writeln("Sending echo reply to " + str(father) + """ with
+                        OP_SIZE and payload = """ +  str(size+1) )
                 send_echo_reply_size(peer, father, decripted_message, size + 1)
                 size = 0
             elif sum_wave:
+                window.writeln("Sending echo reply to " + str(father) + """ with
+                        OP_SUM and payload = """ +  str(size+value) )
                 send_echo_reply_size(peer, father, decripted_message, size +
                         value)
                 size = 0
             elif min_wave:
+                window.writeln("Sending echo reply to " + str(father) + """ with
+                        OP_MIN and payload = """ +  str(minimum) )
                 send_echo_reply_min(peer, father, decripted_message, minimum)
                 minimum = value
             elif max_wave:
+                window.writeln("Sending echo reply to " + str(father) + """ with
+                        OP_MAX and payload = """ +  str(maximum) )
                 send_echo_reply_min(peer, father, decripted_message, maximum)
                 maximum = value
             else:
@@ -161,19 +195,35 @@ def recv_echo(peer, msg, address):
 
     # when 1 neighbor send echo reply (3
     if len(neighbors) == 1 and echoMsg[0] != msg[1] and echoMsg[1] != msg[2]:
-        print( "1 neighbor send message")
-
         # Father is in this case the sender
         father = address
         if (msg[4] == OP_SIZE):
+            window.writeln("Receiev OP_SIZE Echo Message from only neighbor" +
+                    str(address))
+            window.writeln("Send back OP_SIZE echo reply with payload 1\n")
             send_echo_reply_size(peer, father,  msg, 1)
         elif (msg[4] == OP_SUM):
+            window.writeln("Receiev OP_SIZE Echo Message from only neighbor" +
+                    str(address))
+            window.writeln("Send back OP_SIZE echo reply with payload" +
+                    str(value))
             send_echo_reply_size(peer, father,  msg, value)
         elif (msg[4] == OP_MIN):
+            window.writeln("Receiev OP_MIN Echo Message from only neighbor" +
+                    str(address))
+            window.writeln("Send back OP_MIN echo reply with payload" +
+                    str(value))
             send_echo_reply_min(peer, father,  msg, value)
         elif (msg[4] == OP_MAX):
+            window.writeln("Receiev OP_MAX Echo Message from only neighbor" +
+                    str(address))
+            window.writeln("Send back OP_MAX echo reply with payload" +
+                    str(value))
             send_echo_reply_max(peer, father,  msg, value)
         elif (msg[4] == OP_NOOP):
+            window.writeln("Receiev OP_NOOP Echo Message from only neighbor" +
+                    str(address))
+            window.writeln("Send back OP_NOOP echo reply\n")
             send_echo_reply(peer, father, msg)
         else:
             "You should'nt be here"
@@ -185,30 +235,46 @@ def recv_echo(peer, msg, address):
         echoMsg = (msg[1], msg[2])
         father = address
         if(msg[4] == OP_MIN):
+            window.writeln("Receiev OP_MIN Echo Message for first time from " +
+                    str(address))
             min_wave = True
             send_echo(peer, msg, OP_MIN)
         elif(msg[4] == OP_MAX):
+            window.writeln("Receiev OP_MAX Echo Message for first time from " +
+                    str(address))
             max_wave = True
             send_echo(peer, msg, OP_MAX)
         elif(msg[4] == OP_SIZE):
+            window.writeln("Receiev OP_SIZE Echo Message for first time from " +
+                    str(address))
             size_wave = True
             send_echo(peer, msg, OP_SIZE)
         elif(msg[4] == OP_SUM):
+            window.writeln("Receiev OP_SUM Echo Message for first time from " +
+                    str(address))
             sum_wave = True
             send_echo(peer, msg, OP_SUM)
         elif(msg[4] == OP_NOOP):
+            window.writeln("Receiev OP_NOOP Echo Message for first time from " +
+                    str(address))
             send_echo(peer, msg, OP_NOOP)
         else: "You shouldn't be here"
 
 	# Received echo message for the second time (4
     elif echoMsg[0] == msg[1] and echoMsg[1] == msg[2]:
         #FIXME
-        print( "send echo reply. (Got OP_NOOP message for second time)")
+        window.writeln("Received message for the second time from"
+                 +str(address))
+        window.writeln("Send back echo reply OP_NOOP\n")
         send_echo_reply(peer, address, msg)
-        #print "RESET FATHER"
-        #father = (-1, -1)
     else:
         print( "You shouldn't be here!")
+
+# Sends an echo reply message with op = OP_SIZE
+def send_echo_reply_sum(peer,address,  msg, size):
+    encripted_msg = message_encode(MSG_ECHO_REPLY,msg[1], msg[2],(-1,-1),
+            OP_SUM, size)
+    peer.sendto(encripted_msg, address)
         
 # Sends an echo reply message with op = OP_SIZE
 def send_echo_reply_size(peer,address,  msg, size):
@@ -280,7 +346,6 @@ def main(argv):
     global peerlist
     peerlist = []
 
-    # TODO: Make global and no duplicate values between nodes
     global x 
     #x = random.randint(0, 10)    
     global y
@@ -395,6 +460,11 @@ def main(argv):
             x = random.randint(0, 99)
             y = random.randint(0, 99)
             window.writeln("New position = " + str((x,y)))
+
+        # Get a random new sensor value 
+        elif(command == "value"):
+            value = random.randint(0, 10)
+            window.writeln("New sensor value = " + str((x,y)))
 
 		# Initiate wave
         elif(command == "wave"):
