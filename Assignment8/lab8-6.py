@@ -471,7 +471,7 @@ def main(argv):
         # Get a random new sensor value 
         elif(command == "value"):
             value = random.randint(0, 10)
-            window.writeln("New sensor value = " + str((x,y)))
+            window.writeln("New sensor value = " + str(value))
 
 		# Initiate wave
         elif(command == "wave"):
